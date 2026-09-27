@@ -1,0 +1,28 @@
+{
+  "name": "longhai-dictionary-tool",
+  "version": "0.1.0",
+  "description": "Tool đọc dữ liệu từ điển chuyên ngành từ Excel, kiểm tra media (image + mp3) và xuất ra file SQLite cho Flutter/Android app.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --experimental-sqlite src/index.js",
+    "dev": "node --experimental-sqlite --watch src/index.js",
+    "rename": "node scripts/rename-files.js",
+    "convert": "node scripts/convert-png-to-jpg.js",
+    "prep": "node scripts/rename-files.js && node scripts/convert-png-to-jpg.js"
+  },
+  "keywords": [
+    "dictionary",
+    "excel",
+    "sqlite",
+    "android"
+  ],
+  "author": "LeLongHai",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "jimp": "^0.22.12",
+    "xlsx": "^0.18.5"
+  }
+}

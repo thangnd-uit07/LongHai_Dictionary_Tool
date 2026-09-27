@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+
+# Input data (user tự thêm vào)
+input/*.xlsx
+input/*.xls
+
+# Output (binary SQLite)
+output/application.db
+output/*.db
+
+# OS
+.DS_Store
+Thumbs.db
+input/
