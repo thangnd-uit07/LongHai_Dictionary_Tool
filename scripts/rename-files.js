@@ -124,22 +124,33 @@ function processDir(dir, dryRun) {
 
 function main() {
   const args = parseArgs(process.argv);
+  runAll(args);
+}
+
+/**
+ * Hàm thực thi chính - tách ra để có thể gọi trực tiếp từ module khác
+ * (vd src/index.js) mà không cần parse argv.
+ *
+ * @param {{dir: string, dryRun: boolean}} options
+ */
+function runAll(options) {
+  const { dir, dryRun } = options;
 
   console.log('🔄  Chuẩn hóa tên file media');
-  console.log(`   📁 ${args.dir}`);
-  if (args.dryRun) console.log('   🔍 Chế độ DRY RUN (không thay đổi file)');
+  console.log(`   📁 ${dir}`);
+  if (dryRun) console.log('   🔍 Chế độ DRY RUN (không thay đổi file)');
   console.log('');
 
-  const dirs = getTargetDirs(args.dir);
+  const dirs = getTargetDirs(dir);
   let totalRenamed = 0;
   let totalDeleted = 0;
   let totalUnchanged = 0;
   let totalSkipped = 0;
   let totalFiles = 0;
 
-  for (const dir of dirs) {
-    console.log(`📂 ${path.relative(args.dir, dir) || '.'}`);
-    const stats = processDir(dir, args.dryRun);
+  for (const d of dirs) {
+    console.log(`📂 ${path.relative(dir, d) || '.'}`);
+    const stats = processDir(d, dryRun);
     totalRenamed += stats.renamed;
     totalDeleted += stats.deleted;
     totalUnchanged += stats.unchanged;
@@ -155,8 +166,8 @@ function main() {
   console.log(`   ✗ Deleted:  ${totalDeleted}`);
   console.log(`   = Unchanged: ${totalUnchanged}`);
   if (totalSkipped > 0) console.log(`   ? Skipped: ${totalSkipped}`);
-  if (!args.dryRun && totalRenamed > 0) {
-    console.log('\n💡 Tip: chạy tiếp `npm run convert` để convert PNG -> JPG.');
+  if (!dryRun && totalRenamed > 0) {
+    console.log('\n💡 Tip: chạy tiếp `npm run convert` để convert ảnh sang JPG.');
   }
 }
 
@@ -170,4 +181,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { processDir, processFile, parseArgs };
+module.exports = { processDir, processFile, parseArgs, runAll };

@@ -55,13 +55,20 @@ function exportToDb(data, outputPath = paths.DB_FILE) {
     try {
       // 1) sys_types
       for (const s of sysTypes) {
-        insertSysType.run(s.id, s.en || '', s.vi || '');
+        insertSysType.run(parseInt(s.id, 10) || 0, s.en || '', s.vi || '');
       }
 
       // 2) words + 2 bảng FTS
       for (const w of words) {
+        // Ép kiểu integer cho các cột INTEGER (defensive):
+        // - sysType/isActive có thể null/undefined từ Excel
+        // - id từ wordBuilder.js đã là integer nhưng ép lại cho an toàn
+        const wordId = parseInt(w.id, 10) || 0;
+        const sysType = parseInt(w.sysType, 10) || 0;
+        const isActive = parseInt(w.isActive ?? 1, 10) || 1;
+
         insertWord.run(
-          w.id,
+          wordId,
           w.nameEn || '',
           w.nameVi || '',
           w.nameFr || '',
@@ -76,34 +83,34 @@ function exportToDb(data, outputPath = paths.DB_FILE) {
           w.soundFr || null,
           w.term || '',
           w.flashCardVi || '',
-          w.sysType || 0,
+          sysType,
           w.sysTypeEn || '',
           w.sysTypeVi || '',
-          w.isActive ?? 1,
+          isActive,
         );
 
         // virtual_words_en
         const nameEn = w.nameEn || '';
         const unsignEn = removeVietnameseSigns(nameEn);
         insertVirtEn.run(
-          w.id,
+          wordId,
           nameEn,
           unsignEn,
-          w.sysType || 0,
+          sysType,
           createWordFts(nameEn) + ' ' + createWordFts(unsignEn),
-          w.isActive ?? 1,
+          isActive,
         );
 
         // virtual_words_vi
         const nameVi = w.nameVi || '';
         const unsignVi = removeVietnameseSigns(nameVi);
         insertVirtVi.run(
-          w.id,
+          wordId,
           nameVi,
           unsignVi,
-          w.sysType || 0,
+          sysType,
           createWordFts(nameVi) + ' ' + createWordFts(unsignVi),
-          w.isActive ?? 1,
+          isActive,
         );
       }
 

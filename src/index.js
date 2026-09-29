@@ -6,6 +6,8 @@ const { readExcel } = require('./excelReader');
 const { paths, SYS_TYPES_FORMAT, WORDS_FORMAT } = require('./config');
 const { buildWords, buildSysTypes } = require('./wordBuilder');
 const { exportToDb } = require('./sqlExporter');
+const { runAll: runRenameFiles } = require('../scripts/rename-files');
+const { processDir: convertImagesProcessDir } = require('../scripts/convert-png-to-jpg');
 
 /**
  * Kiểm tra input có đầy đủ file cần thiết không.
@@ -86,15 +88,31 @@ function printValidationReport({ errors, warnings }) {
  * Entry point chính của tool - port từ Form1.cs (C#).
  *
  * Flow:
- *   1. Validate input (Excel files + media folders)
- *   2. Đọc file sys_types.xlsx -> insert vào bảng sys_types
- *   3. Đọc file words.xlsx -> build Word records (resolve media)
- *   4. Xuất file SQLite binary (application.db) cho Flutter app
+ *   1. Chuẩn hóa tên file media (rename-files.js)
+ *   2. Convert ảnh sang JPG (convert-png-to-jpg.js)
+ *   3. Validate input (Excel files + media folders)
+ *   4. Đọc file sys_types.xlsx -> insert vào bảng sys_types
+ *   5. Đọc file words.xlsx -> build Word records (resolve media)
+ *   6. Xuất file SQLite binary (application.db) cho Flutter app
  */
 async function main() {
   const t0 = Date.now();
 
-  console.log('🔍  Validate input...');
+  // Bước 1: Chuẩn hóa tên file media (rename theo formatName).
+  console.log('🔄  [1/5] Chuẩn hóa tên file media...');
+  runRenameFiles({ dir: paths.INPUT_DIR, dryRun: false });
+
+  // Bước 2: Convert tất cả ảnh sang JPG, xóa file gốc.
+  console.log('\n🖼️   [2/5] Convert ảnh sang JPG...');
+  const convertOptions = {
+    dir: paths.INPUT_DIR,
+    deleteSource: true,   // mặc định xóa file gốc
+    dryRun: false,
+    quality: 90,
+  };
+  await convertImagesProcessDir(paths.IMAGES_DIR, convertOptions);
+
+  console.log('\n🔍  [3/5] Validate input...');
   const validation = validateInputs();
   printValidationReport(validation);
   if (validation.errors.length > 0) {
@@ -104,7 +122,7 @@ async function main() {
     console.log('   ✓ Input OK\n');
   }
 
-  console.log('📖  Đọc file sys_types (BodySystem)...');
+  console.log('📖  [4/5] Đọc file sys_types (BodySystem)...');
   const sysTypesRaw = readExcel(paths.SYS_TYPES_XLSX, SYS_TYPES_FORMAT);
   const sysTypes = buildSysTypes(sysTypesRaw.rows);
   console.log(`   ✓ ${sysTypes.length} sys_types`);
@@ -112,11 +130,11 @@ async function main() {
   // Build map: id -> sysType info (lookup nhanh cho mỗi word).
   const sysTypeMap = new Map(sysTypes.map((s) => [s.id, s]));
 
-  console.log('\n📖  Đọc file words...');
+  console.log('\n📖  [4/5] Đọc file words...');
   const wordsRaw = readExcel(paths.WORDS_XLSX, WORDS_FORMAT);
   console.log(`   ✓ ${wordsRaw.rows.length} dòng`);
 
-  console.log('\n🖼️   Resolve media (hình ảnh + âm thanh)...');
+  console.log('\n🖼️   [4/5] Resolve media (hình ảnh + âm thanh)...');
   const { words, missing } = buildWords(wordsRaw.rows, sysTypeMap);
   console.log(`   ✓ Đã resolve media cho ${words.length} từ`);
   console.log(`   ⚠  Thiếu image: ${missing.images.length}`);
@@ -125,7 +143,7 @@ async function main() {
   console.log(`   ⚠  Thiếu soundVi: ${missing.soundVi.length}`);
   console.log(`   ⚠  Thiếu soundFr: ${missing.soundFr.length}`);
 
-  console.log('\n💾  Xuất file application.db...');
+  console.log('\n💾  [5/5] Xuất file application.db...');
   const dbPath = exportToDb({ sysTypes, words }, paths.DB_FILE);
   const elapsed = ((Date.now() - t0) / 1000).toFixed(2);
 
